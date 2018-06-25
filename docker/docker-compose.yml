@@ -1,0 +1,9 @@
+version: '2'
+
+services:
+  gpuenv:
+    image: "gpuenv"
+    devices:
+      - /dev/nvidia0
+    volumes:
+        - ./:/home/gpuser/pj/lab/gpuenv
