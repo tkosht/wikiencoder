@@ -8,6 +8,7 @@ from project.logger import Logger
 logger_name = 'app'
 logger = Logger(logger_name)
 
+
 def change_logger(logger_name='test'):
     global logger
     logger = Logger(logger_name)
@@ -48,20 +49,34 @@ def trace(f: callable) -> callable:
     return tracer
 
 
-def excep(f: callable) -> callable:
+def excep(f=None, type_exc: type=Exception, with_raise: bool=False, warn: bool=False) -> callable:
     """
 
     :param f: decorated function
     :return: wrapper function
     """
+    if f is None:
+        kwargs = {
+            "type_exc": type_exc,
+            "with_raise": with_raise,
+            "warn": warn
+        }
+        return functools.partial(excep, **kwargs)
+
     assert callable(f)
+    assert issubclass(type_exc, Exception)
 
     @functools.wraps(f)
     def exceptor(*args, **kwargs) -> None:
         try:
             f(*args, **kwargs)
-        except Exception as e:
+        except type_exc as e:
             err_info = traceback.format_exc(-1, chain=e)   # - just the last stack
-            logger.error(f'ErrorOccured {f.__qualname__}', args=(), kwargs=locals(), e=e, stacktrace=err_info)
+            if warn:
+                logger.warn(f'Warned {f.__qualname__}', args=(), kwargs=locals(), e=e, stacktrace=err_info)
+            else:
+                logger.error(f'ErrorOccured {f.__qualname__}', args=(), kwargs=locals(), e=e, stacktrace=err_info)
+            if with_raise:
+                raise e
         return
     return exceptor

@@ -2,10 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import re
-import traceback
 import tests.test_util as test_util
 import project.decorator as decorator
-from project.logger import Logger
 
 
 decorator.change_logger(test_util.logger_name)
@@ -21,4 +19,41 @@ class TestDecorator(object):
         logged = test_util.get_logged(n_tails=3)
         assert re.search(r"INFO .+ Start ", logged[0])
         assert re.search(r"ERROR .+ ErrorOccured", logged[1])
+        assert re.search(r"INFO .+ End ", logged[2])
+
+    def test_type_exc(self):
+        @decorator.trace
+        @decorator.excep()
+        @decorator.excep(type_exc=ZeroDivisionError, with_raise=True)
+        def run_test(a=1, b=3, x='x', z='z'):
+            1 / 0
+        run_test()
+        logged = test_util.get_logged(n_tails=4)
+        assert re.search(r"INFO .+ Start ", logged[0])
+        assert re.search(r"ERROR .+ ErrorOccured.+ZeroDivisionError.+", logged[1]) # excep(type_exc=*)
+        assert re.search(r"ERROR .+ ErrorOccured.+ZeroDivisionError.+", logged[2]) # excep()
+        assert re.search(r"INFO .+ End ", logged[3])
+
+    def test_type_exc2(self):
+        @decorator.trace
+        @decorator.excep(type_exc=Exception)
+        @decorator.excep(type_exc=IndexError)
+        def run_test(a=1, b=3, x='x', z='z'):
+            1 / 0
+        run_test()
+        logged = test_util.get_logged(n_tails=3)
+        assert re.search(r"INFO .+ Start ", logged[0])
+        assert re.search(r"ERROR .+ ErrorOccured.+ZeroDivisionError.+", logged[1])
+        assert re.search(r"INFO .+ End ", logged[2])
+
+    def test_type_warn(self):
+        @decorator.trace
+        @decorator.excep()
+        @decorator.excep(type_exc=ZeroDivisionError, warn=True)
+        def run_test(a=1, b=3, x='x', z='z'):
+            1 / 0
+        run_test()
+        logged = test_util.get_logged(n_tails=3)
+        assert re.search(r"INFO .+ Start ", logged[0])
+        assert re.search(r"WARNING .+ Warned.+ZeroDivisionError.+", logged[1])
         assert re.search(r"INFO .+ End ", logged[2])
