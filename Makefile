@@ -58,15 +58,15 @@ init: init-docker init-data ## initialize repository for traning
 init-log:
 	mkdir -p $(LOG_DIR)
 
-init-data: ## download data
-	-aws s3 sync $(DATA) ./data/
+init-data: prep
+#	-aws s3 sync $(DATA) ./data/
 
 init-docker: ## initialize docker image
 	$(DOCKER) build -t $(IMAGE_NAME) -f $(DOCKERFILE) .
 
 # for module test
 logger decorator:
-	python $(PYTHON_MODULE)/$@.py
+	$(PYTHON) $(PYTHON_MODULE)/$@.py
 
 prep: preprocess
 
@@ -91,7 +91,7 @@ test: init-log
 	pytest $(config)
 
 run-cov-server:
-	cd tests/report && python -m http.server 8001
+	cd tests/report && $(PYTHON) -m http.server 8001
 
 lint: ## check style with flake8
 	$(eval config := --config=config/setup.cfg)
