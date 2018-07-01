@@ -39,6 +39,7 @@ export DATA=s3://aaa
 export PYTHON=python3
 export DOCKERFILE=docker/Dockerfile
 export LOG_DIR=log
+export WIKIXMLBZ2=$(PWD)/data/enwiki-latest-pages-articles.xml.bz2
 
 ###########################################################################################################
 ## ADD TARGETS FOR YOUR TASK
@@ -63,8 +64,21 @@ init-data: ## download data
 init-docker: ## initialize docker image
 	$(DOCKER) build -t $(IMAGE_NAME) -f $(DOCKERFILE) .
 
+# for module test
 logger decorator:
 	python $(PYTHON_MODULE)/$@.py
+
+prep: preprocess
+
+preprocess: data/wikitxt/ 	# after extracted
+	sh scripts/sep2doc.sh
+
+data/wikitxt/: $(WIKIXMLBZ2)
+	$(eval outdir := $(PWD)/$@)
+	sh scripts/wikiextractor.sh $(WIKIXMLBZ2) $(outdir)
+
+$(WIKIXMLBZ2):
+	sh scripts/download.sh
 
 create-container: ## create docker container
 	$(DOCKER) run -it -v $(PWD):/work --name $(CONTAINER_NAME) $(IMAGE_NAME)
