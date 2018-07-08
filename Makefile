@@ -56,7 +56,9 @@ help:
 init: init-docker init-data ## initialize repository for traning
 
 init-log:
+	$(eval logfile := $(LOG_DIR)/test_project.log)
 	mkdir -p $(LOG_DIR)
+	: > $(logfile)
 
 init-data: prep
 #	-aws s3 sync $(DATA) ./data/
@@ -83,11 +85,12 @@ $(WIKIXMLBZ2):
 create-container: ## create docker container
 	$(DOCKER) run -it -v $(PWD):/work --name $(CONTAINER_NAME) $(IMAGE_NAME)
 
-test: init-log
-	$(eval logfile := -c log/test_project.log)
+test: init-log init-testdata
 	$(eval opts := -c config/setup.cfg)
-	: > $(logfile)
 	pytest $(opts)
+
+init-testdata:
+	sh scripts/pickup.sh	# to sample wiki text files(docs and titles)
 
 wikitext:
 	$(PYTHON) $(PYTHON_MODULE)/$@.py
