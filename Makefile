@@ -89,7 +89,9 @@ test: init-log init-testdata
 	$(eval opts := -c config/setup.cfg)
 	pytest $(opts)
 
-init-testdata:
+init-testdata: data/test/
+
+data/test/:
 	sh scripts/pickup.sh	# to sample wiki text files(docs and titles)
 
 wikitext:
