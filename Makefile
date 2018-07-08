@@ -85,10 +85,9 @@ create-container: ## create docker container
 
 test: init-log
 	$(eval logfile := -c log/test_project.log)
-	$(eval config := -c config/setup.cfg)
-	touch $(logfile)
-	truncate --size=0 $(logfile)
-	pytest $(config)
+	$(eval opts := -c config/setup.cfg)
+	: > $(logfile)
+	pytest $(opts)
 
 wikitext:
 	$(PYTHON) $(PYTHON_MODULE)/$@.py

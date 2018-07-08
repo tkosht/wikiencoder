@@ -36,16 +36,3 @@ class WikiTextLoader(object):
         assert len(docs) == len(titles)
         if self.residual and docs != []:
             yield titles, docs
-
-
-def get_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--debug", action="store_true", default=False,
-                        help="if you specified, execute as debug mode. default: 'False'")
-    parser.add_argument("--trace", action="store_true", default=False,
-                        help="if you specified, execute as trace mode. default: 'False'")
-    parser.add_argument("-i", "--indir", type=str, default="data/parsed",
-                        help="you can specify the string of the input directory"
-                        " must includes subdir 'doc/', and 'title/'. default: 'data/parsed'")
-    args = parser.parse_args()
-    return args
