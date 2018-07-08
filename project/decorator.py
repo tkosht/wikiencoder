@@ -49,7 +49,7 @@ def trace(f: callable) -> callable:
     return tracer
 
 
-def excep(f=None, type_exc: type=Exception, with_raise: bool=False, warn: bool=False) -> callable:
+def excep(f=None, type_exc: type=Exception, with_raise: bool=False, warn: bool=False, do_exit: bool=False) -> callable:
     """
 
     :param f: decorated function
@@ -78,5 +78,6 @@ def excep(f=None, type_exc: type=Exception, with_raise: bool=False, warn: bool=F
                 logger.error(f'ErrorOccured {f.__qualname__}', args=(), kwargs=locals(), e=e, stacktrace=err_info)
             if with_raise:
                 raise e
-        return
+            return 2 if warn else 1
+        return 0
     return exceptor

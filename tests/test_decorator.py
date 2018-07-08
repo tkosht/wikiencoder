@@ -30,8 +30,8 @@ class TestDecorator(object):
         run_test()
         logged = test_util.get_logged(n_tails=4)
         assert re.search(r"INFO .+ Start ", logged[0])
-        assert re.search(r"ERROR .+ ErrorOccured.+ZeroDivisionError.+", logged[1]) # excep(type_exc=*)
-        assert re.search(r"ERROR .+ ErrorOccured.+ZeroDivisionError.+", logged[2]) # excep()
+        assert re.search(r"ERROR .+ ErrorOccured.+ZeroDivisionError.+", logged[1])  # excep(type_exc=*)
+        assert re.search(r"ERROR .+ ErrorOccured.+ZeroDivisionError.+", logged[2])  # excep()
         assert re.search(r"INFO .+ End ", logged[3])
 
     def test_type_exc2(self):

@@ -90,6 +90,10 @@ test: init-log
 	truncate --size=0 $(logfile)
 	pytest $(config)
 
+wikitext:
+	$(PYTHON) $(PYTHON_MODULE)/$@.py
+
+
 run-cov-server:
 	cd tests/report && $(PYTHON) -m http.server 8001
 
