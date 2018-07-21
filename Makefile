@@ -30,7 +30,7 @@ export DOCKER=docker
 export PRINT_HELP_PYSCRIPT
 export START_DOCKER_CONTAINER
 export PYTHONPATH=$(printenv PYTHONPATH):$(PWD)
-export PROJECT_NAME=pypj
+export PROJECT_NAME=wikiencoder
 export PYTHON_MODULE=project
 export TEST_MODULE=tests
 export IMAGE_NAME=$(PROJECT_NAME)-image
@@ -94,9 +94,10 @@ init-testdata: data/test/
 data/test/:
 	sh scripts/pickup.sh	# to sample wiki text files(docs and titles)
 
-wikitext:
+wikitext vectorize:
+	$(eval logfile := $(LOG_DIR)/project.log)
+	: > $(logfile)
 	$(PYTHON) $(PYTHON_MODULE)/$@.py
-
 
 run-cov-server:
 	cd tests/report && $(PYTHON) -m http.server 8001
