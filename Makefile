@@ -63,8 +63,16 @@ init-log:
 init-data: prep
 #	-aws s3 sync $(DATA) ./data/
 
-init-docker: ## initialize docker image
-	$(DOCKER) build -t $(IMAGE_NAME) -f $(DOCKERFILE) .
+init-docker: docker-build	## initialize docker image
+
+docker-build:
+	sh scripts/docker/build.sh
+
+docker-clean:
+	sh scripts/docker/clean.sh
+
+docker-run:
+	sh scripts/docker/run.sh
 
 # for module test
 logger decorator:
