@@ -5,5 +5,9 @@ if [ "$1" = "-d" -o "$1" = "--debug" ]; then
     opt_cache=""
 fi
 
-d=$(cd $(dirname $0)/../../ && pwd)
-docker build -f $d/docker/Dockerfile $d -t gpuenv:gpuenv $opt_cache
+base_dir=$(cd $(dirname $0)/../../ && pwd)
+. $(dirname $0)/init.sh
+
+# d=$(cd $(dirname $0)/../../ && pwd)
+cd $base_dir
+docker build -f ./docker/Dockerfile -t $docker_image $opt_cache .
