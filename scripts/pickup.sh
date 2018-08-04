@@ -7,7 +7,7 @@ n=100000
 n_samples=13
 doc_list=$(find parsed/doc/ -type f  | head -n $n | shuf -n $n_samples /dev/stdin)
 
-test_dir="test"
+test_dir="tests"
 rm -rf $test_dir
 mkdir -p $test_dir
 for doc_file in $doc_list
