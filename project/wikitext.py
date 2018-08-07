@@ -1,10 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import os
 import pathlib
 import numpy
+import string
+from tqdm import tqdm
 from nltk import tokenize
-from allennlp.data.tokenizers.word_tokenizer import SpacyWordSplitter
+from nltk.corpus import stopwords
+import project.decorator as deco
+
+stop_words = set(stopwords.words("english")) & set(list(string.punctuation))
 
 
 def _get_title_p(doc_p):
@@ -13,29 +19,58 @@ def _get_title_p(doc_p):
     return title_p
 
 
+@deco.trace
+def save_samples_list(docs, indir):
+    p = pathlib.Path(indir)
+    with p.joinpath("samples.list").open("w") as f:
+        for elm in docs:
+            line = f"{str(elm)}{os.linesep}"
+            f.writelines(line)
+
+
 class WikiTextLoader(object):
-    def __init__(self, indir: str="data/parsed", do_tokenize=True,
-                 batch_size: int=32, with_title=False, residual: bool=False
+    def __init__(self, indir: str="data/parsed", do_tokenize: bool=False, n_samples: int=0,
+                 batch_size: int=32, with_title: bool=False, residual: bool=False
                  ):
         self.indir = indir
         self.batch_size = numpy.inf if batch_size == -1 else batch_size
         self.do_tokenize = do_tokenize
+        self.n_samples = n_samples
         self.with_title = with_title
         self.residual = residual
         assert batch_size > 0
 
+    def tokenize_word(self, sentence):
+        _words = tokenize.word_tokenize(sentence)
+        words = [str(w).lower() for w in _words if w not in stop_words]
+        return words
+
+    @deco.trace
+    def filter_samples(self, doc_list):
+        docs = numpy.array([p for p in doc_list])
+        n = len(docs)
+        n_samples = min(n, self.n_samples)
+        filter_flags = numpy.random.binomial(1, n_samples/n, n)
+        filter_flags = filter_flags.astype(numpy.bool8)
+        doc_list = docs[filter_flags]
+        save_samples_list(doc_list, self.indir)
+        return doc_list
+
     def iter(self):
-        tokenizer = SpacyWordSplitter(pos_tags=True)
         doc_list = pathlib.Path(self.indir).glob("doc/**/*.txt")
+        if self.n_samples > 0:
+            doc_list = self.filter_samples(doc_list)
+
         batch = []
         docs = []
         titles = []
         paths = []
-        for idx, doc_p in enumerate(doc_list):
+        for idx, doc_p in tqdm(enumerate(doc_list)):
             with doc_p.open("r") as fr:
                 doc = fr.read().rstrip()
             if self.do_tokenize:
-                doc = [tokenizer.split_words(s) for s in tokenize.sent_tokenize(doc)]
+                doc = self.tokenize_word(doc)
+
             docs.append(doc)
             paths.append(doc_p)
             batch = docs, paths
@@ -46,7 +81,7 @@ class WikiTextLoader(object):
                 with title_p.open("r") as fr:
                     title = fr.read().rstrip()
                 if self.do_tokenize:
-                    title = tokenizer.split_words(title)
+                    title = self.tokenize_word(title)
                 assert len(docs) == len(titles)
                 titles.append(title)
                 batch = titles, docs, paths

@@ -23,7 +23,7 @@ class Logger(object):
         return _msg
 
     def _format_params(self, params):
-        return str(params)
+        return re.sub(r"\s*\n\s*", " ", str(params))
 
     def _format_stacktrace(self, stacktrace: str):
         _stacktrace = re.sub(r"\r?\n", " ", stacktrace)

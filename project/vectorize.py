@@ -3,9 +3,7 @@
 
 import re
 import argparse
-from nltk import tokenize
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
-from allennlp.data.tokenizers.word_tokenizer import SpacyWordSplitter
 
 
 import project.decorator as deco
@@ -21,41 +19,44 @@ def get_args():
     parser.add_argument("-i", "--indir", type=str, default="data/parsed",
                         help="you can specify the string of the input directory"
                         " must includes subdir 'doc/', and 'title/'. default: 'data/parsed'")
-    parser.add_argument("-b", "--batch-size", type=int, default="4096",
-                        help="you can specify the number of mini batch size."
-                        " default: '32'")
+    parser.add_argument("-b", "--batch-size", type=int, default="1024",
+                        help="you can specify the number of mini batch size. default: '1024'")
+    parser.add_argument("--samples", type=int, default=2*1000*1000,
+                        help="you can specify the number of samples which is the set of paths in indir."
+                        " default: '2*1000*1000', if 0 or negative number, will use all of samples.")
     args = parser.parse_args()
     return args
 
 
 class Vectorize(object):
-    def __init__(self, indir, batch_size):
+    def __init__(self, indir, batch_size, n_samples):
         assert batch_size > 0
         self.indir = indir
         self.batch_size = batch_size
+        self.n_samples = n_samples
 
         self.tagdocs = []
         self.model = None
 
     def run(self):
-        self.load()
         self.train()
         self.save()
 
     @deco.trace
-    def load(self):
-        allen_tokenizer = SpacyWordSplitter(pos_tags=True)
-        wt = WikiTextLoader(self.indir, batch_size=self.batch_size, with_title=False, residual=True)
-        self.tagdocs = [
-            TaggedDocument(doc, [f"{re.sub('{self.indir}/doc/', '', str(path))}"]
-            )
-            for m, (docs, paths) in enumerate(wt.iter())
-            for k, (doc, path) in enumerate(zip(docs, paths))
-            ]
-
-    @deco.trace
     def train(self):
-        self.model = Doc2Vec(self.tagdocs, vector_size=128, window=3, min_count=1,
+        class WikiDocuments(object):
+            def __init__(self, indir, batch_size, n_samples):
+                self.wt = WikiTextLoader(indir, batch_size=batch_size, n_samples=n_samples,
+                                    do_tokenize=True, with_title=False, residual=True)
+            def __iter__(self):
+                for docs, paths in self.wt.iter():
+                    for doc, path in zip(docs, paths):
+                        yield TaggedDocument(doc, [f"{re.sub('{self.indir}/doc/', '', str(path))}"])
+                        del doc
+                    del docs
+
+        wikidocs = WikiDocuments(self.indir, self.batch_size, self.n_samples)
+        self.model = Doc2Vec(wikidocs, vector_size=128, window=7, min_count=1,
                              dm=1, hs=0, negative=10, dbow_words=1,
                              workers=4)
 
@@ -68,7 +69,7 @@ class Vectorize(object):
 @deco.excep
 def main():
     args = get_args()
-    v = Vectorize(indir=args.indir, batch_size=args.batch_size)
+    v = Vectorize(indir=args.indir, batch_size=args.batch_size, n_samples=args.samples)
     v.run()
 
 
