@@ -45,6 +45,15 @@ export WIKIXMLBZ2=$(PWD)/data/enwiki-latest-pages-articles.xml.bz2
 ## ADD TARGETS FOR YOUR TASK
 ###########################################################################################################
 
+vectorize encoder:
+	$(PYTHON) $(PYTHON_MODULE)/$@.py
+
+init-log:
+	$(eval logfile := $(LOG_DIR)/project.log)
+	: > $(logfile)
+
+tags:
+	ctags -R $(PYTHON_MODULE) tests
 
 ###########################################################################################################
 ## GENERAL TARGETS
@@ -55,7 +64,7 @@ help:
 
 init: init-docker init-data ## initialize repository for traning
 
-init-log:
+init-test-log:
 	$(eval logfile := $(LOG_DIR)/test_project.log)
 	mkdir -p $(LOG_DIR)
 	: > $(logfile)
@@ -93,7 +102,7 @@ $(WIKIXMLBZ2):
 create-container: ## create docker container
 	$(DOCKER) run -it -v $(PWD):/work --name $(CONTAINER_NAME) $(IMAGE_NAME)
 
-test: init-log init-testdata
+test: init-test-log init-testdata
 	$(eval opts := -c config/setup.cfg)
 	pytest $(opts)
 
@@ -101,11 +110,6 @@ init-testdata: data/test/
 
 data/test/:
 	sh scripts/pickup.sh	# to sample wiki text files(docs and titles)
-
-wikitext vectorize:
-	$(eval logfile := $(LOG_DIR)/project.log)
-	: > $(logfile)
-	$(PYTHON) $(PYTHON_MODULE)/$@.py
 
 run-cov-server:
 	cd tests/report && $(PYTHON) -m http.server 8001

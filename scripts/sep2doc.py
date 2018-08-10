@@ -39,8 +39,6 @@ def cmd(infile, outdir):
                 d = p.parent.name
                 output_file = f'{outdir}/title/{d}/{p.name}/{n_docs:05d}.txt'
                 wp = pathlib.Path(output_file)
-                eos = "__EOS__"
-                line = f"{line.strip()} {eos}{os.linesep}"
                 wp.parent.mkdir(parents=True, exist_ok=True)
                 with wp.open('w') as fw:
                     fw.write(line)

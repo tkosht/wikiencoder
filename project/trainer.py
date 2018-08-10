@@ -4,7 +4,7 @@
 import argparse
 import torch
 from torch.autograd import Variable
-import project.decorator as deco
+import project.deco as deco
 from gensim.models.doc2vec import Doc2Vec
 from project.wikitext import WikiTextLoader
 

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import os
@@ -8,7 +7,7 @@ import string
 from tqdm import tqdm
 from nltk import tokenize
 from nltk.corpus import stopwords
-import project.decorator as deco
+import project.deco as deco
 
 stop_words = set(stopwords.words("english")) & set(list(string.punctuation))
 
@@ -27,6 +26,12 @@ def save_samples_list(docs, indir):
             line = f"{str(elm)}{os.linesep}"
             f.writelines(line)
 
+def tokenize_word(sentence):
+    _words = tokenize.word_tokenize(sentence)
+    words = [str(w).lower() for w in _words if w not in stop_words]
+    words.append("__eos__")
+    return words
+
 
 class WikiTextLoader(object):
     def __init__(self, indir: str="data/parsed", do_tokenize: bool=False, n_samples: int=0,
@@ -40,11 +45,6 @@ class WikiTextLoader(object):
         self.residual = residual
         assert batch_size > 0
 
-    def tokenize_word(self, sentence):
-        _words = tokenize.word_tokenize(sentence)
-        words = [str(w).lower() for w in _words if w not in stop_words]
-        return words
-
     @deco.trace
     def filter_samples(self, doc_list):
         docs = numpy.array([p for p in doc_list])
@@ -56,20 +56,22 @@ class WikiTextLoader(object):
         save_samples_list(doc_list, self.indir)
         return doc_list
 
-    def iter(self):
+    def load(self):
         doc_list = pathlib.Path(self.indir).glob("doc/**/*.txt")
         if self.n_samples > 0:
             doc_list = self.filter_samples(doc_list)
+        self.doc_list = doc_list
 
+    def iter(self):
         batch = []
         docs = []
         titles = []
         paths = []
-        for idx, doc_p in tqdm(enumerate(doc_list)):
+        for idx, doc_p in tqdm(enumerate(self.doc_list)):
             with doc_p.open("r") as fr:
                 doc = fr.read().rstrip()
             if self.do_tokenize:
-                doc = self.tokenize_word(doc)
+                doc = tokenize_word(doc)
 
             docs.append(doc)
             paths.append(doc_p)
@@ -81,9 +83,9 @@ class WikiTextLoader(object):
                 with title_p.open("r") as fr:
                     title = fr.read().rstrip()
                 if self.do_tokenize:
-                    title = self.tokenize_word(title)
-                assert len(docs) == len(titles)
+                    title = tokenize_word(title)
                 titles.append(title)
+                assert len(docs) == len(titles)
                 batch = titles, docs, paths
 
             if idx % self.batch_size == self.batch_size - 1:

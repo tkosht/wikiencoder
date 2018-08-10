@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import sys
 import functools
 import traceback
 from project.logger import Logger
@@ -59,7 +60,8 @@ def excep(f=None, type_exc: type=Exception, with_raise: bool=False, warn: bool=F
         kwargs = {
             "type_exc": type_exc,
             "with_raise": with_raise,
-            "warn": warn
+            "warn": warn,
+            "do_exit": do_exit,
         }
         return functools.partial(excep, **kwargs)
 
@@ -68,16 +70,18 @@ def excep(f=None, type_exc: type=Exception, with_raise: bool=False, warn: bool=F
 
     @functools.wraps(f)
     def exceptor(*args, **kwargs) -> None:
+        ec = 0
         try:
-            f(*args, **kwargs)
+            r = f(*args, **kwargs)
         except type_exc as e:
             err_info = traceback.format_exc(-1, chain=e)   # - just the last stack
-            if warn:
-                logger.warn(f'Warned {f.__qualname__}', args=(), kwargs=locals(), e=e, stacktrace=err_info)
-            else:
-                logger.error(f'ErrorOccured {f.__qualname__}', args=(), kwargs=locals(), e=e, stacktrace=err_info)
+            write_log = logger.warn if warn else logger.error
+            write_log(f'{f.__qualname__}', args=(), kwargs=locals(), e=e, stacktrace=err_info)
             if with_raise:
                 raise e
-            return 2 if warn else 1
-        return 0
+            ec = 2 if warn else 1
+            if do_exit and not warn:
+                logger.error(f'Abort', args=(), kwargs=locals(), e=e, stacktrace=err_info)
+                sys.exit(ec)
+        return r
     return exceptor
