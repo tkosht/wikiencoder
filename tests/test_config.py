@@ -8,7 +8,7 @@ from project.config import Config
 class TestConfig(object):
     @pytest.fixture(scope='module')
     def config(self):
-        return Config("tests/config/project.ini", "tests/config/project.spc")
+        return Config("tests/config/project.cfg", "tests/config/project.spc")
 
     def test_get(self, config):
         assert config.get("encoder", "gpu") == 1
@@ -32,7 +32,7 @@ class TestConfig(object):
     def test_invalid(self, config):
         @deco.excep(with_raise=True)
         def _load_invalid():
-            cfg = Config("tests/config/invalid.ini", "tests/config/project.spc")
+            cfg = Config("tests/config/invalid.cfg", "tests/config/project.spc")
         try:
             _load_invalid()
             assert False

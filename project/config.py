@@ -4,7 +4,7 @@ from configobj import ConfigObj, flatten_errors
 from validate import Validator
 
 
-default_config = "config/project.ini"
+default_config = "config/project.cfg"
 default_spec = "config/project.spc"
 
 class Config(object):

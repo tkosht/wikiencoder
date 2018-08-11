@@ -45,6 +45,8 @@ export WIKIXMLBZ2=$(PWD)/data/enwiki-latest-pages-articles.xml.bz2
 ## ADD TARGETS FOR YOUR TASK
 ###########################################################################################################
 
+run: init-log vectorizer encoder
+
 vectorizer encoder:
 	$(PYTHON) $(PYTHON_MODULE)/$@.py
 

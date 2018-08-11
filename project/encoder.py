@@ -64,6 +64,7 @@ def main():
             ["encoder", "epochs"],
             ["encoder", "lr"],
             ["encoder", "weight_decay"],
+            ["encoder", "hidden_size"],
             ]
     cfg.setup(keys)
 
@@ -83,7 +84,7 @@ def main():
 
     model_params = {
             "input_dim": vector_model.wv.vector_size,
-            "hidden_dim": 100,
+            "hidden_dim": cfg.hidden_size,
             "device": device,
     }
     model = SentenceEncoder(**model_params)
