@@ -7,6 +7,7 @@ from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 
 
 import project.deco as deco
+from project.config import Config
 from project.wikitext import WikiTextLoader
 
 
@@ -19,24 +20,25 @@ def get_args():
     parser.add_argument("-i", "--indir", type=str, default="data/parsed",
                         help="you can specify the string of the input directory"
                         " must includes subdir 'doc/', and 'title/'. default: 'data/parsed'")
-    parser.add_argument("-b", "--batch-size", type=int, default="1024",
-                        help="you can specify the number of mini batch size. default: '1024'")
-    parser.add_argument("--samples", type=int, default=1000,    # 2*1000*1000
-                        help="you can specify the number of samples which is the set of paths in indir."
-                        " default: '2*1000*1000', if 0 or negative number, will use all of samples.")
-    parser.add_argument("--epochs", type=int, default="5",
-                        help="you can specify the number of epochs to train the doc2vec model.")
+    # parser.add_argument("-b", "--batch-size", type=int, default="1024",
+    #                     help="you can specify the number of mini batch size. default: '1024'")
+    # parser.add_argument("--samples", type=int, default=1000,    # 2*1000*1000
+    #                     help="you can specify the number of samples which is the set of paths in indir."
+    #                     " default: '2*1000*1000', if 0 or negative number, will use all of samples.")
+    # parser.add_argument("--epochs", type=int, default="5",
+    #                     help="you can specify the number of epochs to train the doc2vec model.")
     args = parser.parse_args()
     return args
 
 
 class Vectorize(object):
-    def __init__(self, indir, batch_size, n_samples, epochs):
+    def __init__(self, indir, batch_size, n_samples, epochs, vector_size):
         assert batch_size > 0
         self.indir = indir
         self.batch_size = batch_size
         self.n_samples = n_samples
         self.epochs = epochs
+        self.vector_size = vector_size
 
         self.tagdocs = []
         self.model = None
@@ -65,7 +67,7 @@ class Vectorize(object):
 
         self.model = Doc2Vec(
             WikiDocuments(self.indir, self.batch_size, self.n_samples),
-            vector_size=128, window=7, min_count=1,
+            vector_size=self.vector_size, window=7, min_count=1,
             dm=1, hs=0, negative=10, dbow_words=1,
             epochs=self.epochs, workers=4
         )
@@ -77,11 +79,23 @@ class Vectorize(object):
 
 
 @deco.trace
-@deco.excep
+@deco.excep(return_code=True)
 def main():
     args = get_args()
-    v = Vectorize(indir=args.indir, batch_size=args.batch_size,
-                  n_samples=args.samples, epochs=args.epochs)
+    cfg = Config()
+    keys = [
+            ["vectorizer", "batch_size"],
+            ["vectorizer", "samples"],
+            ["vectorizer", "vector_size"],
+            ["vectorizer", "epochs"],
+            ]
+    cfg.setup(keys)
+    v = Vectorize(indir=args.indir,
+                  batch_size=cfg.batch_size,
+                  n_samples=cfg.samples,
+                  epochs=cfg.epochs,
+                  vector_size=cfg.vector_size,
+                  )
     v.run()
 
 

@@ -12,6 +12,7 @@ from gensim.models.doc2vec import Doc2Vec
 
 import project.deco as deco
 from project.wikitext import tokenize_word
+from project.config import Config
 from project.sequence_encoder import SentenceEncoder
 
 
@@ -21,12 +22,9 @@ def get_args():
                         help="if you specified, execute as debug mode. default: 'False'")
     parser.add_argument("--trace", action="store_true", default=False,
                         help="if you specified, execute as trace mode. default: 'False'")
-    parser.add_argument("--gpu", type=int, default="0",
-                        help="you can specify the number of gpu processer, "
-                        "but negative value means cpu. default: '-1'")
-    parser.add_argument("--epochs", type=int, default="500")
-    parser.add_argument("--lr", type=float, default="0.001")
-    parser.add_argument("--weight-decay", type=float, default="0")
+    # parser.add_argument("--gpu", type=int, default="0",
+    #                     help="you can specify the number of gpu processer, "
+    #                     "but negative value means cpu. default: '-1'")
     args = parser.parse_args()
     return args
 
@@ -57,19 +55,27 @@ def reverse_tensor(tensor, device=torch.device("cpu")):
 
 
 @deco.trace
-@deco.excep
+@deco.excep(return_code=True)
 def main():
     args = get_args()
+    cfg = Config()
+    keys = [
+            ["encoder", "gpu"],
+            ["encoder", "epochs"],
+            ["encoder", "lr"],
+            ["encoder", "weight_decay"],
+            ]
+    cfg.setup(keys)
 
     # setup device
-    if args.gpu < 0:
+    if cfg.gpu < 0:
         device = torch.device("cpu")
     else:
-        device = torch.device(f"cuda:{args.gpu}")
+        device = torch.device(f"cuda:{cfg.gpu}")
         try:
             torch.Tensor([]).to(device)
         except Exception as e:
-            warnings.warn(f"your gpu number:[{args.gpu}] may be invalid. will use default gpu. [{str(e)}]")
+            warnings.warn(f"your gpu number:[{cfg.gpu}] may be invalid. will use default gpu. [{str(e)}]")
             device = torch.device(f"cuda")  # set as default
 
     # load trained doc2vec model
@@ -88,12 +94,12 @@ def main():
 
     optim_params = {
         "params": model.parameters(),
-        "weight_decay": args.weight_decay,
-        "lr": args.lr,
+        "weight_decay": cfg.weight_decay,
+        "lr": cfg.lr,
     }
     optimizer = torch.optim.Adam(**optim_params)
 
-    loss_records = model.do_train(training_data, args.epochs, optimizer)
+    loss_records = model.do_train(training_data, cfg.epochs, optimizer)
 
     def save_fig(x, img_file):
         pyplot.plot(range(len(x)), x)
@@ -101,6 +107,17 @@ def main():
         pyplot.savefig(img_file)
 
     save_fig(loss_records, "results/loss_wikidata.png")
+
+    y = model.do_predict(X=title_data)
+    predicted = [reverse_tensor(seq, device) for seq in y]
+    for pseq, tseq in zip(predicted, teacher):
+        # import ipdb; ipdb.set_trace()
+        tseq = tseq.squeeze(1)
+        psim = [vector_model.wv.similar_by_vector(numpy.array(tsr.data), topn=1)[0] for tsr in pseq]
+        tsim = [vector_model.wv.similar_by_vector(numpy.array(tsr.data), topn=1)[0] for tsr in tseq]
+        pwords = [elm[0] for elm in psim]
+        twords = [elm[0] for elm in tsim]
+        print(f'{" ".join(twords)} -> {" ".join(pwords)}')
 
 
 if __name__ == '__main__':

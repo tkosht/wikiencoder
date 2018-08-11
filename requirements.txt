@@ -21,3 +21,4 @@ pytest-cov
 pytest-xdist
 pytest-html
 ipdb
+configobj==5.0.6

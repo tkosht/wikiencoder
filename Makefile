@@ -45,7 +45,7 @@ export WIKIXMLBZ2=$(PWD)/data/enwiki-latest-pages-articles.xml.bz2
 ## ADD TARGETS FOR YOUR TASK
 ###########################################################################################################
 
-vectorize encoder:
+vectorizer encoder:
 	$(PYTHON) $(PYTHON_MODULE)/$@.py
 
 init-log:
@@ -69,7 +69,7 @@ init-test-log:
 	mkdir -p $(LOG_DIR)
 	: > $(logfile)
 
-init-data: prep
+init-data: prep prepare-testdata
 #	-aws s3 sync $(DATA) ./data/
 
 init-docker: docker-build	## initialize docker image

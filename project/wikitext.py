@@ -61,6 +61,7 @@ class WikiTextLoader(object):
         if self.n_samples > 0:
             doc_list = self.filter_samples(doc_list)
         self.doc_list = doc_list
+        return self
 
     def iter(self):
         batch = []
