@@ -3,6 +3,12 @@
 data/
 wikiextractor/
 t.sh
+.idea/
+examples/
+model/
+results/
+mini
+tags
 
 .runnnig
 *.tar.gz
