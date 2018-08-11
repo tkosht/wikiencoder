@@ -7,7 +7,6 @@ import numpy
 import torch
 import pathlib
 import warnings
-import matplotlib.pyplot as pyplot
 from gensim.models.doc2vec import Doc2Vec
 
 import project.deco as deco
@@ -126,10 +125,11 @@ def main():
     # do predict
     y = model.do_predict(X=title_data)
     predicted = [reverse_tensor(seq, device) for seq in y]
+    get_word = vector_model.wv.similar_by_vector
     for pseq, tseq in zip(predicted, teacher):
         tseq = tseq.squeeze(1)
-        psim = [vector_model.wv.similar_by_vector(numpy.array(tsr.data), topn=1)[0] for tsr in pseq]
-        tsim = [vector_model.wv.similar_by_vector(numpy.array(tsr.data), topn=1)[0] for tsr in tseq]
+        psim = [get_word(numpy.array(tsr.data, dtype=numpy.float32), topn=1)[0] for tsr in pseq]
+        tsim = [get_word(numpy.array(tsr.data, dtype=numpy.float32), topn=1)[0] for tsr in tseq]
         pwords = [elm[0] for elm in psim]
         twords = [elm[0] for elm in tsim]
         print(f'{" ".join(twords)} -> {" ".join(pwords)}')

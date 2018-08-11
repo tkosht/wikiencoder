@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
+import pathlib
 import numpy
 import torch
 import torch.nn as nn
 from tqdm import tqdm
+import matplotlib.pyplot as pyplot
 
 
 class SequenceEncoder(nn.Module):
@@ -87,7 +89,7 @@ class SequenceEncoder(nn.Module):
         loss_records = []
         for epoch in tqdm(range(max_epoch)):
             loss_mean = 0
-            for seq, trg in zip(*training_data):
+            for seq, trg in tqdm(zip(*training_data)):
                 self.zero_grad()
                 self.init_hidden()
 
@@ -118,7 +120,7 @@ class SequenceEncoder(nn.Module):
     def save(self):
         torch.save(self.state_dict(), self.model_file)
 
-    def save_figure(img_file):
+    def save_figure(self, img_file):
         x = self.loss_records
         pyplot.plot(range(len(x)), x)
         pathlib.Path(img_file).parent.mkdir(parents=True, exist_ok=True)
