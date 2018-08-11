@@ -10,7 +10,7 @@ import matplotlib.pyplot as pyplot
 from gensim.models.doc2vec import Doc2Vec
 
 import project.deco as deco
-from project.sequence_encoder import SentenceEncoder
+from project.sequence_encoder import SequenceEncoder
 
 
 def get_args():
@@ -52,7 +52,7 @@ def main():
 
     device = torch.device("cuda:1")
     # device = torch.device("cpu")
-    model = SentenceEncoder(3, 2, device)
+    model = SequenceEncoder(3, 2, device)
 
     n_data = 10
     data = get_toydata(n_data, device)

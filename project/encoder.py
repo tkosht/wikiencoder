@@ -13,7 +13,7 @@ from gensim.models.doc2vec import Doc2Vec
 import project.deco as deco
 from project.wikitext import tokenize_word
 from project.config import Config
-from project.sequence_encoder import SentenceEncoder
+from project.sequence_encoder import SequenceEncoder
 
 
 def get_args():
@@ -91,7 +91,7 @@ def main():
             "hidden_dim": cfg.hidden_size,
             "device": device,
     }
-    model = SentenceEncoder(**model_params)
+    model = SequenceEncoder(**model_params, model_file=cfg.model_file)
     if args.load:
         @deco.trace
         def load_model():
