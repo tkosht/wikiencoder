@@ -50,7 +50,9 @@ def trace(f: callable) -> callable:
     return tracer
 
 
-def excep(f=None, type_exc: type=Exception, with_raise: bool=False, warn: bool=False, do_exit: bool=False) -> callable:
+def excep(f=None, type_exc: type=Exception, with_raise: bool=False,
+          warn: bool=False, return_code: bool=False
+          ) -> callable:
     """
 
     :param f: decorated function
@@ -61,7 +63,7 @@ def excep(f=None, type_exc: type=Exception, with_raise: bool=False, warn: bool=F
             "type_exc": type_exc,
             "with_raise": with_raise,
             "warn": warn,
-            "do_exit": do_exit,
+            "return_code": return_code,
         }
         return functools.partial(excep, **kwargs)
 
@@ -70,18 +72,22 @@ def excep(f=None, type_exc: type=Exception, with_raise: bool=False, warn: bool=F
 
     @functools.wraps(f)
     def exceptor(*args, **kwargs) -> None:
-        ec = 0
+        r = None
         try:
             r = f(*args, **kwargs)
         except type_exc as e:
             err_info = traceback.format_exc(-1, chain=e)   # - just the last stack
+            err_type = "Warned" if warn else "ErrorOccured"
             write_log = logger.warn if warn else logger.error
-            write_log(f'{f.__qualname__}', args=(), kwargs=locals(), e=e, stacktrace=err_info)
+            write_log(f'{err_type} {f.__qualname__}', args=(), kwargs=locals(), e=e, stacktrace=err_info)
             if with_raise:
                 raise e
             ec = 2 if warn else 1
-            if do_exit and not warn:
+            if return_code:
                 logger.error(f'Abort', args=(), kwargs=locals(), e=e, stacktrace=err_info)
-                sys.exit(ec)
+                # sys.exit(ec)
+                return ec
+        if return_code:
+            return 0
         return r
     return exceptor

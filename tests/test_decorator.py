@@ -3,16 +3,16 @@
 
 import re
 import tests.test_util as test_util
-import project.decorator as decorator
+import project.deco as deco
 
 
-decorator.change_logger(test_util.logger_name)
+deco.change_logger(test_util.logger_name)
 
 
 class TestDecorator(object):
     def test_decorator(self):
-        @decorator.trace
-        @decorator.excep
+        @deco.trace
+        @deco.excep
         def run_test(a=1, b=3, x='x', z='z'):
             1 / 0
         run_test()
@@ -22,9 +22,9 @@ class TestDecorator(object):
         assert re.search(r"INFO .+ End ", logged[2])
 
     def test_type_exc(self):
-        @decorator.trace
-        @decorator.excep()
-        @decorator.excep(type_exc=ZeroDivisionError, with_raise=True)
+        @deco.trace
+        @deco.excep()
+        @deco.excep(type_exc=ZeroDivisionError, with_raise=True)
         def run_test(a=1, b=3, x='x', z='z'):
             1 / 0
         run_test()
@@ -35,9 +35,9 @@ class TestDecorator(object):
         assert re.search(r"INFO .+ End ", logged[3])
 
     def test_type_exc2(self):
-        @decorator.trace
-        @decorator.excep(type_exc=Exception)
-        @decorator.excep(type_exc=IndexError)
+        @deco.trace
+        @deco.excep(type_exc=Exception)
+        @deco.excep(type_exc=IndexError)
         def run_test(a=1, b=3, x='x', z='z'):
             1 / 0
         run_test()
@@ -47,9 +47,9 @@ class TestDecorator(object):
         assert re.search(r"INFO .+ End ", logged[2])
 
     def test_type_warn(self):
-        @decorator.trace
-        @decorator.excep()
-        @decorator.excep(type_exc=ZeroDivisionError, warn=True)
+        @deco.trace
+        @deco.excep()
+        @deco.excep(type_exc=ZeroDivisionError, warn=True)
         def run_test(a=1, b=3, x='x', z='z'):
             1 / 0
         run_test()
