@@ -99,6 +99,14 @@ class SentenceEncoder(nn.Module):
             loss_records.append(loss_mean)
         return loss_records
 
+    def do_predict(self, X):
+        with torch.no_grad():
+            for seq in X:
+                self.zero_grad()
+                self.init_hidden()
+                y, mu, logvar = self(seq)
+        return y
+
 
 def get_loss(y, t, mu, logvar):
     if len(t.shape) == 2:
