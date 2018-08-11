@@ -14,6 +14,7 @@ class SequenceEncoder(nn.Module):
         self.hidden_dim = hidden_dim
         self.device = device
         self.model_file = model_file
+        self.loss_records = []
 
         # for encoder
         self.encoder_lstm = nn.LSTM(input_dim, hidden_dim)
@@ -57,8 +58,9 @@ class SequenceEncoder(nn.Module):
     def is_similar(self, src, trg):
         _s = numpy.array(src.data)
         _t = numpy.array(trg.data)
-        eps = numpy.linalg.norm(_s) * 0.01
-        return (numpy.linalg.norm(_s - _t) < eps)
+        #delta = numpy.linalg.norm(_s) * 0.01
+        delta = 1e-6
+        return (numpy.linalg.norm(_s - _t) < delta)
 
     def forward(self, sequence):
         mu, logvar = self.encode(sequence)
@@ -98,7 +100,8 @@ class SequenceEncoder(nn.Module):
             loss_mean /= len(training_data[0])
             # print(f" / epoch: {epoch:05d} loss_mean: {loss_mean}", end="")
             loss_records.append(loss_mean)
-        return loss_records
+            self.loss_records = loss_records
+        return self
 
     def do_predict(self, X):
         with torch.no_grad():
@@ -114,6 +117,12 @@ class SequenceEncoder(nn.Module):
 
     def save(self):
         torch.save(self.state_dict(), self.model_file)
+
+    def save_figure(img_file):
+        x = self.loss_records
+        pyplot.plot(range(len(x)), x)
+        pathlib.Path(img_file).parent.mkdir(parents=True, exist_ok=True)
+        pyplot.savefig(img_file)
 
 
 def get_loss(y, t, mu, logvar):

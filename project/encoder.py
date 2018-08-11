@@ -112,22 +112,16 @@ def main():
     optimizer = torch.optim.Adam(**optim_params)
 
     # do train
-    loss_records = model.do_train(training_data, cfg.epochs, optimizer)
+    model.do_train(training_data, cfg.epochs, optimizer)
 
-    # save figure for loss_records
-    def save_fig(x, img_file):
-        pyplot.plot(range(len(x)), x)
-        pathlib.Path(img_file).parent.mkdir(parents=True, exist_ok=True)
-        pyplot.savefig(img_file)
-
-    save_fig(loss_records, "results/loss_wikidata.png")
-
-    # save the trained model
     @deco.trace
-    def save_model():
-        model.save(self.model_file)
+    def save():
+        # save figure for loss_records
+        model.save_figure("results/loss_wikidata.png")
+        # save the trained model
+        model.save()
 
-    save_model()
+    save()
 
     # do predict
     y = model.do_predict(X=title_data)
