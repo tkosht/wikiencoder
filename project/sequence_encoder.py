@@ -7,12 +7,13 @@ from tqdm import tqdm
 
 
 class SentenceEncoder(nn.Module):
-    def __init__(self, input_dim, hidden_dim, device=torch.device("cpu")):
+    def __init__(self, input_dim, hidden_dim, device=torch.device("cpu"), model_file):
         super().__init__()
         self.max_seqlen = 7
         self.input_dim = self.output_dim = input_dim
         self.hidden_dim = hidden_dim
         self.device = device
+        self.model_file = model_file
 
         # for encoder
         self.encoder_lstm = nn.LSTM(input_dim, hidden_dim)
@@ -106,6 +107,13 @@ class SentenceEncoder(nn.Module):
                 self.init_hidden()
                 y, mu, logvar = self(seq)
         return y
+
+    def load(self):
+        weight_params = torch.load(self.model_file)
+        self.load_state_dict(weight_params)
+
+    def save(self):
+        torch.save(self.state_dict(), self.model_file)
 
 
 def get_loss(y, t, mu, logvar):

@@ -25,6 +25,9 @@ def get_args():
     # parser.add_argument("--gpu", type=int, default="0",
     #                     help="you can specify the number of gpu processer, "
     #                     "but negative value means cpu. default: '-1'")
+    parser.add_argument("--load", action="store_true", default=False,
+                        help="if you can specified, load the saved model_file which set on config file. "
+                        "default: 'False'")
     args = parser.parse_args()
     return args
 
@@ -65,6 +68,7 @@ def main():
             ["encoder", "lr"],
             ["encoder", "weight_decay"],
             ["encoder", "hidden_size"],
+            ["encoder", "model_file"],
             ]
     cfg.setup(keys)
 
@@ -88,11 +92,18 @@ def main():
             "device": device,
     }
     model = SentenceEncoder(**model_params)
+    if args.load:
+        @deco.trace
+        def load_model():
+            model.load()
+        load_model()
 
+    # make data
     title_data, doc_data = get_wikidata(vector_model, device)
     teacher = [reverse_tensor(seq, device) for seq in title_data]
     training_data = (title_data, teacher)
 
+    # setup optimizer
     optim_params = {
         "params": model.parameters(),
         "weight_decay": cfg.weight_decay,
@@ -100,8 +111,10 @@ def main():
     }
     optimizer = torch.optim.Adam(**optim_params)
 
+    # do train
     loss_records = model.do_train(training_data, cfg.epochs, optimizer)
 
+    # save figure for loss_records
     def save_fig(x, img_file):
         pyplot.plot(range(len(x)), x)
         pathlib.Path(img_file).parent.mkdir(parents=True, exist_ok=True)
@@ -109,10 +122,17 @@ def main():
 
     save_fig(loss_records, "results/loss_wikidata.png")
 
+    # save the trained model
+    @deco.trace
+    def save_model():
+        model.save(self.model_file)
+
+    save_model()
+
+    # do predict
     y = model.do_predict(X=title_data)
     predicted = [reverse_tensor(seq, device) for seq in y]
     for pseq, tseq in zip(predicted, teacher):
-        # import ipdb; ipdb.set_trace()
         tseq = tseq.squeeze(1)
         psim = [vector_model.wv.similar_by_vector(numpy.array(tsr.data), topn=1)[0] for tsr in pseq]
         tsim = [vector_model.wv.similar_by_vector(numpy.array(tsr.data), topn=1)[0] for tsr in tseq]
