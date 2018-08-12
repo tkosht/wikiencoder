@@ -50,6 +50,12 @@ run: init-log vectorizer encoder
 vectorizer encoder:
 	$(PYTHON) $(PYTHON_MODULE)/$@.py
 
+encoder_toy:
+	$(PYTHON) $(PYTHON_MODULE)/$@.py
+
+run-visdom-server:
+	$(PYTHON) -m visdom.server -port 8097 &
+
 init-log:
 	$(eval logfile := $(LOG_DIR)/project.log)
 	: > $(logfile)

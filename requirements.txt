@@ -22,3 +22,4 @@ pytest-xdist
 pytest-html
 ipdb
 configobj==5.0.6
+torchnet==0.0.4

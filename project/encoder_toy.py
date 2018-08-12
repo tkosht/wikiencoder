@@ -5,12 +5,16 @@ import re
 import argparse
 import numpy
 import torch
+import torchnet
 import pathlib
+from tqdm import tqdm
 import matplotlib.pyplot as pyplot
 from gensim.models.doc2vec import Doc2Vec
+from torchnet.engine import Engine
+from torchnet.logger import VisdomPlotLogger, VisdomLogger
 
 import project.deco as deco
-from project.sequence_encoder import SequenceEncoder
+from project.sequence_encoder import SequenceEncoder, get_loss
 
 
 def get_args():
@@ -46,7 +50,7 @@ def reverse_tensor(tensor, device=torch.device("cpu")):
 
 
 @deco.trace
-@deco.excep
+@deco.excep(return_code=True)
 def main():
     args = get_args()
 
@@ -66,14 +70,65 @@ def main():
     }
     optimizer = torch.optim.Adam(**optim_params)
 
-    loss_records = model.do_train(training_data, args.epochs, optimizer)
+    meter_loss = torchnet.meter.AverageValueMeter()
+    port = 8097
+    train_loss_logger = VisdomPlotLogger(
+        'line', port=port, opts={'title': 'encoder_toy - train loss'})
 
-    def save_fig(x, img_file):
-        pyplot.plot(range(len(x)), x)
-        pathlib.Path(img_file).parent.mkdir(parents=True, exist_ok=True)
-        pyplot.savefig(img_file)
+    def network(sample):
+        x = sample[0]   # sequence
+        t = sample[1]   # target sequence
+        y, mu, logvar = model(x)
+        loss = get_loss(y, t, mu, logvar)
+        o = y, mu, logvar
+        return loss, o
 
-    save_fig(loss_records, "results/loss_toydata.png")
+    def reset_meters():
+        meter_loss.reset()
+
+    def on_sample(state):
+        state['sample'] = list(state['sample'])
+        state['sample'].append(state['train'])
+        model.zero_grad()
+        model.init_hidden()
+
+    def on_forward(state):
+        loss_value = state['loss'].data
+        meter_loss.add(state['loss'].data)
+
+    def on_start_epoch(state):
+        reset_meters()
+        if 'dataset' not in state:
+            dataset = state['iterator']
+            state['dataset'] = dataset
+        dataset = state['dataset']
+        state['iterator'] = tqdm(zip(*dataset))
+
+    def on_end_epoch(state):
+        loss_value = meter_loss.value()[0]
+        epoch = state['epoch']
+        print(f'loss[{epoch}]: {loss_value:.4f}')
+        train_loss_logger.log(epoch, loss_value)
+        dataset = state['dataset']
+        state['iterator'] = tqdm(zip(*dataset))
+
+    engine = Engine()
+    engine.hooks['on_sample'] = on_sample
+    engine.hooks['on_forward'] = on_forward
+    engine.hooks['on_start_epoch'] = on_start_epoch
+    engine.hooks['on_end_epoch'] = on_end_epoch
+
+    engine.train(network, training_data, maxepoch=args.epochs, optimizer=optimizer)
+
+
+    # loss_records = model.do_train(training_data, args.epochs, optimizer)
+
+    # def save_fig(x, img_file):
+    #     pyplot.plot(range(len(x)), x)
+    #     pathlib.Path(img_file).parent.mkdir(parents=True, exist_ok=True)
+    #     pyplot.savefig(img_file)
+
+    # save_fig(loss_records, "results/loss_toydata.png")
 
 
 if __name__ == '__main__':
