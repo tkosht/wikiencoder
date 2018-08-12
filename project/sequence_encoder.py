@@ -87,6 +87,12 @@ class SequenceEncoder(nn.Module):
     def do_train(self, training_data, max_epoch, optimizer):
         assert len(training_data) == 2
         loss_records = []
+
+        do_mean = False
+        if max_epoch >= 100:
+            do_mean = True
+
+        n = len(training_data[0])
         for epoch in tqdm(range(max_epoch)):
             loss_mean = 0
             for seq, trg in tqdm(zip(*training_data)):
@@ -96,13 +102,16 @@ class SequenceEncoder(nn.Module):
                 y, mu, logvar = self(seq)
 
                 loss = get_loss(y, trg, mu, logvar)
-                loss_mean += loss
+                if not do_mean:
+                    loss_records.append(loss.data)
+                loss_mean += loss.data
                 loss.backward()
                 optimizer.step()
-            loss_mean /= len(training_data[0])
+            loss_mean /= n
             # print(f" / epoch: {epoch:05d} loss_mean: {loss_mean}", end="")
-            loss_records.append(loss_mean)
-            self.loss_records = loss_records
+            if do_mean:
+                loss_records.append(loss_mean)
+        self.loss_records = loss_records
         return self
 
     def do_predict(self, X):

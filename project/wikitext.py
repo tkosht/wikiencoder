@@ -9,7 +9,7 @@ from nltk import tokenize
 from nltk.corpus import stopwords
 import project.deco as deco
 
-stop_words = set(stopwords.words("english")) & set(list(string.punctuation))
+stop_words = set(stopwords.words("english")) | set(list(string.punctuation))
 
 
 def _get_title_p(doc_p):
@@ -27,8 +27,8 @@ def save_samples_list(docs, indir):
             f.writelines(line)
 
 def tokenize_word(sentence):
-    _words = tokenize.word_tokenize(sentence)
-    words = [str(w).lower() for w in _words if w not in stop_words]
+    _words = [str(w).lower() for w in tokenize.word_tokenize(sentence)]
+    words = [w for w in _words if w not in stop_words]
     words.append("__eos__")
     return words
 

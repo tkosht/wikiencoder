@@ -24,7 +24,7 @@ def get_args():
     # parser.add_argument("--gpu", type=int, default="0",
     #                     help="you can specify the number of gpu processer, "
     #                     "but negative value means cpu. default: '-1'")
-    parser.add_argument("--load", action="store_true", default=False,
+    parser.add_argument("--load", action="store_true", default=True,    # False
                         help="if you can specified, load the saved model_file which set on config file. "
                         "default: 'False'")
     args = parser.parse_args()
@@ -126,7 +126,7 @@ def main():
     y = model.do_predict(X=title_data)
     predicted = [reverse_tensor(seq, device) for seq in y]
     get_word = vector_model.wv.similar_by_vector
-    for pseq, tseq in zip(predicted, teacher):
+    for pseq, tseq in zip(predicted, title_data):
         tseq = tseq.squeeze(1)
         psim = [get_word(numpy.array(tsr.data, dtype=numpy.float32), topn=1)[0] for tsr in pseq]
         tsim = [get_word(numpy.array(tsr.data, dtype=numpy.float32), topn=1)[0] for tsr in tseq]
