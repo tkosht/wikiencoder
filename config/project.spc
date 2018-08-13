@@ -10,4 +10,8 @@
     lr = float(min=0, default=0.001)
     weight_decay = float(min=0, default=0)
     hidden_size = integer(min=1, default=100)
-    model_file = string
+    model_file = string(default=model/seq2vec.pth)
+
+[visdom]
+    server = string(default=0.0.0.0)
+    port = integer(min=1025, default=8097)

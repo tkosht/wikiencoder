@@ -45,16 +45,23 @@ export WIKIXMLBZ2=$(PWD)/data/enwiki-latest-pages-articles.xml.bz2
 ## ADD TARGETS FOR YOUR TASK
 ###########################################################################################################
 
-run: init-log vectorizer encoder
+run: init-log vectorizer seq2vec
 
-vectorizer encoder:
+vectorizer seq2vec:
 	$(PYTHON) $(PYTHON_MODULE)/$@.py
 
 encoder_toy:
 	$(PYTHON) $(PYTHON_MODULE)/$@.py
 
 run-visdom-server:
-	$(PYTHON) -m visdom.server -port 8097 &
+	$(eval server := $(shell egrep -A 2 '^\[visdom\]' config/project.cfg | egrep 'server\s*=' | awk '{print $$NF}'))
+	$(eval port := $(shell egrep -A 2 '^\[visdom\]' config/project.cfg | egrep 'port\s*=' | awk '{print $$NF}'))
+	HOSTNAME=$(server) $(PYTHON) -m visdom.server -port $(port) > $(LOG_DIR)/visdom.log 2>&1 &
+
+kill-visdom-server:
+	$(eval visdom := $(shell ps -ef | egrep 'visdom\.server'| awk '{print $$2}'))
+	$(eval chk := $(shell [ "$(visdom)" ] && kill $(visdom)))
+	@sleep 1
 
 init-log:
 	$(eval logfile := $(LOG_DIR)/project.log)
