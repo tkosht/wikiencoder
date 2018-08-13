@@ -116,11 +116,13 @@ class SequenceEncoder(nn.Module):
 
     def do_predict(self, X):
         with torch.no_grad():
+            predicted = []
             for seq in X:
                 self.zero_grad()
                 self.init_hidden()
                 y, mu, logvar = self(seq)
-        return y
+                predicted.append(y)
+        return predicted
 
     def load(self):
         weight_params = torch.load(self.model_file)

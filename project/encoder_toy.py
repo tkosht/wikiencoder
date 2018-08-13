@@ -1,20 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import re
 import argparse
 import numpy
 import torch
 import torchnet
-import pathlib
 from tqdm import tqdm
-import matplotlib.pyplot as pyplot
-from gensim.models.doc2vec import Doc2Vec
 from torchnet.engine import Engine
 from torchnet.logger import VisdomPlotLogger, VisdomLogger
 
 import project.deco as deco
-from project.sequence_encoder import SequenceEncoder, get_loss
+from project.sequoder import SequenceEncoder, get_loss
 
 
 def get_args():

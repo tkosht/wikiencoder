@@ -47,11 +47,11 @@ export WIKIXMLBZ2=$(PWD)/data/enwiki-latest-pages-articles.xml.bz2
 
 run: init-log vectorizer seq2vec
 
-vectorizer seq2vec:
+vectorizer encoder_toy:
 	$(PYTHON) $(PYTHON_MODULE)/$@.py
 
-encoder_toy:
-	$(PYTHON) $(PYTHON_MODULE)/$@.py
+seq2vec:
+	$(PYTHON) $(PYTHON_MODULE)/$@.py --load
 
 run-visdom-server:
 	$(eval server := $(shell egrep -A 2 '^\[visdom\]' config/project.cfg | egrep 'server\s*=' | awk '{print $$NF}'))

@@ -68,7 +68,7 @@ def excep(f=None, type_exc: type=Exception, with_raise: bool=False,
         return functools.partial(excep, **kwargs)
 
     assert callable(f)
-    assert issubclass(type_exc, Exception)
+    assert issubclass(type_exc, Exception) or issubclass(type_exc, KeyboardInterrupt)
 
     @functools.wraps(f)
     def exceptor(*args, **kwargs) -> None:

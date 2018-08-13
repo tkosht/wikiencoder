@@ -4,15 +4,20 @@
 import re
 import argparse
 import numpy
+import random
 import torch
+import torchnet
 import pathlib
 import warnings
+from tqdm import tqdm
 from gensim.models.doc2vec import Doc2Vec
+from torchnet.engine import Engine
+from torchnet.logger import VisdomPlotLogger
 
 import project.deco as deco
 from project.wikitext import tokenize_word
 from project.config import Config
-from project.sequence_encoder import SequenceEncoder
+from project.sequoder import SequenceEncoder, get_loss
 
 
 def get_args():
@@ -24,7 +29,7 @@ def get_args():
     # parser.add_argument("--gpu", type=int, default="0",
     #                     help="you can specify the number of gpu processer, "
     #                     "but negative value means cpu. default: '-1'")
-    parser.add_argument("--load", action="store_true", default=True,    # False
+    parser.add_argument("--load", action="store_true", default=False,
                         help="if you can specified, load the saved model_file which set on config file. "
                         "default: 'False'")
     args = parser.parse_args()
@@ -58,6 +63,7 @@ def reverse_tensor(tensor, device=torch.device("cpu")):
 
 @deco.trace
 @deco.excep(return_code=True)
+@deco.excep(return_code=True, type_exc=KeyboardInterrupt, warn=True)
 def main():
     args = get_args()
     cfg = Config()
@@ -67,7 +73,12 @@ def main():
             ["encoder", "lr"],
             ["encoder", "weight_decay"],
             ["encoder", "hidden_size"],
+            ["encoder", "train_samples"],
             ["encoder", "model_file"],
+            ["encoder", "predict_intervals"],
+            ["encoder", "predict_samples"],
+            ["visdom", "server"],
+            ["visdom", "port"],
             ]
     cfg.setup(keys)
 
@@ -89,10 +100,12 @@ def main():
             "input_dim": vector_model.wv.vector_size,
             "hidden_dim": cfg.hidden_size,
             "device": device,
+            "model_file": cfg.model_file,
     }
-    model = SequenceEncoder(**model_params, model_file=cfg.model_file)
+    model = SequenceEncoder(**model_params)
     if args.load:
         @deco.trace
+        @deco.excep(warn=True)
         def load_model():
             model.load()
         load_model()
@@ -101,6 +114,9 @@ def main():
     title_data, doc_data = get_wikidata(vector_model, device)
     teacher = [reverse_tensor(seq, device) for seq in title_data]
     training_data = (title_data, teacher)
+    trainset = [(x, t) for x, t in zip(*training_data)]
+    if cfg.train_samples > 0:
+        trainset = random.sample(trainset, cfg.train_samples)
 
     # setup optimizer
     optim_params = {
@@ -110,29 +126,82 @@ def main():
     }
     optimizer = torch.optim.Adam(**optim_params)
 
-    # do train
-    model.do_train(training_data, cfg.epochs, optimizer)
+    meter_loss = torchnet.meter.AverageValueMeter()
+    train_loss_logger = VisdomPlotLogger('line', port=cfg.port, opts={'title': 'encoder_toy - train loss'})
+
+
+    def network(sample):
+        x = sample[0]   # sequence
+        t = sample[1]   # target sequence
+        y, mu, logvar = model(x)
+        loss = get_loss(y, t, mu, logvar)
+        o = y, mu, logvar
+        return loss, o
+
+    def reset_meters():
+        meter_loss.reset()
+
+    def on_start(state):
+        state['dataset'] = state['iterator']
+
+    def on_sample(state):
+        state['sample'] = list(state['sample'])
+        state['sample'].append(state['train'])
+        model.zero_grad()
+        model.init_hidden()
+
+    def on_forward(state):
+        loss_value = state['loss'].data
+        meter_loss.add(state['loss'].data)
+
+    def on_start_epoch(state):
+        reset_meters()
+        dataset = state['dataset']
+        numpy.random.shuffle(dataset)
+        state['iterator'] = tqdm(dataset)
+
+    # do predict
+    def predict(n_samples=-1):
+        _data = title_data
+        if n_samples > 0:
+            _data = title_data[:n_samples]
+        y = model.do_predict(X=_data)
+        predicted = [reverse_tensor(seq, device) for seq in y]
+        get_word = vector_model.wv.similar_by_vector
+        for pseq, tseq in zip(predicted, _data):
+            pseq = pseq.squeeze(1)
+            tseq = tseq.squeeze(1)
+            psim = [get_word(numpy.array(tsr.data, dtype=numpy.float32), topn=1)[0] for tsr in pseq]
+            tsim = [get_word(numpy.array(tsr.data, dtype=numpy.float32), topn=1)[0] for tsr in tseq]
+            pwords = [elm[0] for elm in psim]
+            twords = [elm[0] for elm in tsim]
+            print(f'{" ".join(twords)} -> {" ".join(pwords)}')
+
+    def on_end_epoch(state):
+        loss_value = meter_loss.value()[0]
+        epoch = state['epoch']
+        print(f'loss[{epoch}]: {loss_value:.4f}')
+        train_loss_logger.log(epoch, loss_value)
+        if epoch % cfg.predict_intervals == 0:
+            predict(cfg.predict_samples)
+
+    engine = Engine()
+    engine.hooks['on_start'] = on_start
+    engine.hooks['on_sample'] = on_sample
+    engine.hooks['on_forward'] = on_forward
+    engine.hooks['on_start_epoch'] = on_start_epoch
+    engine.hooks['on_end_epoch'] = on_end_epoch
+
+    engine.train(network, trainset, maxepoch=cfg.epochs, optimizer=optimizer)
 
     @deco.trace
     def save():
-        # save figure for loss_records
-        model.save_figure("results/loss_wikidata.png")
         # save the trained model
         model.save()
 
     save()
 
-    # do predict
-    y = model.do_predict(X=title_data)
-    predicted = [reverse_tensor(seq, device) for seq in y]
-    get_word = vector_model.wv.similar_by_vector
-    for pseq, tseq in zip(predicted, title_data):
-        tseq = tseq.squeeze(1)
-        psim = [get_word(numpy.array(tsr.data, dtype=numpy.float32), topn=1)[0] for tsr in pseq]
-        tsim = [get_word(numpy.array(tsr.data, dtype=numpy.float32), topn=1)[0] for tsr in tseq]
-        pwords = [elm[0] for elm in psim]
-        twords = [elm[0] for elm in tsim]
-        print(f'{" ".join(twords)} -> {" ".join(pwords)}')
+    predict(cfg.predict_samples)
 
 
 if __name__ == '__main__':
