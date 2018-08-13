@@ -20,12 +20,12 @@ class SequenceEncoder(nn.Module):
 
         # for encoder
         self.encoder_lstm = nn.LSTM(input_dim, hidden_dim)
-        self.m = nn.Linear(hidden_dim, self.hidden_dim)
-        self.v = nn.Linear(hidden_dim, self.hidden_dim)
+        self.m = nn.LSTM(hidden_dim, self.hidden_dim)
+        self.v = nn.LSTM(hidden_dim, self.hidden_dim)
         
         # for decoder
         self.decoder_lstm = nn.LSTM(hidden_dim, hidden_dim)
-        self.decoder_fc = nn.Linear(hidden_dim, self.output_dim)
+        self.decoder_pred = nn.LSTM(hidden_dim, self.output_dim)
 
         self.init_hidden()
         self.to(device)
@@ -37,12 +37,25 @@ class SequenceEncoder(nn.Module):
                                torch.zeros(*hidden_shape).to(self.device))
         self.decoder_hidden = (torch.zeros(*hidden_shape).to(self.device),
                                torch.zeros(*hidden_shape).to(self.device))
+        self.m_hidden = (torch.zeros(*hidden_shape).to(self.device),
+                         torch.zeros(*hidden_shape).to(self.device))
+        self.v_hidden = (torch.zeros(*hidden_shape).to(self.device),
+                         torch.zeros(*hidden_shape).to(self.device))
+        hidden_shape = (1, 1, self.output_dim)
+        self.p_hidden = (torch.zeros(*hidden_shape).to(self.device),
+                          torch.zeros(*hidden_shape).to(self.device))
         return self
     
     def encode(self, sequence):
         sequence = sequence.to(self.device)
+        if self.training:
+            sgm = 0.05
+            noise = sgm * torch.randn(sequence.shape)
+            noise = noise.to(self.device)
+            sequence += noise
         encoder_out, self.encoder_hidden = self.encoder_lstm(sequence, self.encoder_hidden)
-        mu, logvar = self.m(encoder_out), self.v(encoder_out)
+        mu, self.m_hidden = self.m(encoder_out, self.m_hidden)
+        logvar, self.v_hidden = self.v(encoder_out, self.v_hidden)
         return mu, logvar
 
     def reparameterize(self, mu, logvar):
@@ -71,15 +84,14 @@ class SequenceEncoder(nn.Module):
         
         y = []
         d = embeded
-        for t in range(self.max_seqlen):
-            # print(f"t: {t} d.shape: {d.shape}")
+        for _timestep in range(self.max_seqlen):
             d = self.decode(d)
-            _x = self.decoder_fc(d)
+            _x, self.p_hidden = self.decoder_pred(d, self.p_hidden)
             y.append(_x)
             
-            eos = sequence[-1]
-            is_eos = self.is_similar(_x, eos)
-            if is_eos:
+            bos = sequence[0]
+            is_bos = self.is_similar(_x, bos)
+            if is_bos:
                 break
         y = torch.cat(y)
         return y, mu, logvar
@@ -153,4 +165,13 @@ def get_loss(y, t, mu, logvar):
     loss_similarity = loss_cos + loss_cor
     kl_div = -0.5 * torch.mean(1 + logvar - mu.pow(2) - logvar.exp())
     loss = kl_div + loss_mse + loss_similarity
+
+    yy = y.sum(dim=0)
+    tt = t.sum(dim=0)
+    loss_mse2 = mse(yy, tt)
+    loss_cos2 = 0.25 * torch.mean(1 - cos(yy, tt))
+    loss_cor2 = 0.25 * torch.mean(1 - cos(yy - torch.mean(yy), tt - torch.mean(tt)))
+    loss_similarity2 = loss_cos2 + loss_cor2
+    penalty = loss_mse2 + loss_similarity2
+
     return loss
