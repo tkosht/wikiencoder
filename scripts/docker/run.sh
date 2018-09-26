@@ -3,7 +3,7 @@
 
 opts=""
 cmd=""
-if [ "$1" = "-it" ]; then
+if [ "$1" = "-it" -o "$1" = "--shell" ]; then
     opts="-it"
     shift
 else
