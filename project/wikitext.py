@@ -29,6 +29,7 @@ def save_samples_list(docs, indir):
 def tokenize_word(sentence):
     _words = [str(w).lower() for w in tokenize.word_tokenize(sentence)]
     words = [w for w in _words if w not in stop_words]
+    words.insert(0, "__bos__")
     words.append("__eos__")
     return words
 
