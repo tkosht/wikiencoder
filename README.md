@@ -21,7 +21,7 @@ make vectorizer
 make run-visdom-server seq2vec
 ```
 ### also use 'run' target
-instead of specifying all of vectorizer, run-visdom-server, seq2vec,
+instead of specifying all of `vectorizer`, `run-visdom-server`, `seq2vec`,
 you can use only `run` target, like just run `make run` as follows.
 ```
 make preprocess
@@ -32,8 +32,9 @@ make run
 output format is as follows:
 ```
 word1 word2 ...
-    -> predicted_word1(similarity1) predicted_word2(similarity2) ... 
+    -> decoded_word1(similarity1) decoded_word2(similarity2) ... 
 ```
+- word1 word2 ... means a title of enwiki
 
 after 1000 epochs, every similarity(cosine similarity) is 1.00,
 which means seq2vec decoded completely.
