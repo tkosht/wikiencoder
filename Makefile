@@ -45,7 +45,7 @@ export WIKIXMLBZ2=$(PWD)/data/enwiki-latest-pages-articles.xml.bz2
 ## ADD TARGETS FOR YOUR TASK
 ###########################################################################################################
 
-run: init-log vectorizer seq2vec
+run: init-log vectorizer run-visdom-server seq2vec
 
 vectorizer seq2vec encoder_toy :
 	$(PYTHON) $(PYTHON_MODULE)/$@.py
@@ -141,18 +141,18 @@ profile: ## show profile of the project
 clean: clean-model clean-pyc clean-docker ## remove all artifacts
 
 clean-model: ## remove model artifacts
-	rm -fr model/*
+	rm -rf model/*
 
 clean-pyc: ## remove Python file artifacts
-	find . -name '*.pyc' -exec rm -f {} +
-	find . -name '*.pyo' -exec rm -f {} +
-	find . -name '*~' -exec rm -f {} +
-	find . -name '__pycache__' -exec rm -fr {} +
+	find $(PYTHON_MODULE) -name '*.pyc' -exec rm -f {} +
+	find $(PYTHON_MODULE) -name '*.pyo' -exec rm -f {} +
+	find $(PYTHON_MODULE) -name '*~' -exec rm -f {} +
+	find $(PYTHON_MODULE) -name '__pycache__' -exec rm -fr {} +
 
 distclean: clean clean-data ## remove all the reproducible resources including Docker images
 
 clean-data: ## remove files under data
-	rm -fr data/*
+	rm -rf data/*
 
 clean-docker: clean-container clean-image ## remove Docker image and container
 
