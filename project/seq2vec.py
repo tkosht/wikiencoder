@@ -3,7 +3,6 @@
 
 import re
 import argparse
-import pathlib
 import numpy
 import random
 import torch

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import pathlib
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -112,6 +113,7 @@ class SequenceEncoder(nn.Module):
         self.load_state_dict(weight_params)
 
     def save(self):
+        pathlib.Path(self.model_file).parent.mkdir(parents=True, exist_ok=True)
         torch.save(self.state_dict(), self.model_file)
 
     def get_loss(self, y, t, mu, logvar):
