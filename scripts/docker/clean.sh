@@ -9,6 +9,7 @@ for ctr in $container_list
 do
     docker rm $ctr
 done
+rm -f $runnnig_file
 
 image_list=$(docker images | egrep -v "$except" \
     | awk '{print $3}')
