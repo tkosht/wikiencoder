@@ -122,10 +122,10 @@ class SequenceEncoder(nn.Module):
 
         mask = torch.zeros(self.max_seqlen).to(self.device)
         mask[:idx] = 1
-        y *= mask.view(self.max_seqlen, 1, 1).expand(*y.shape)
+        _y = y * mask.view(self.max_seqlen, 1, 1).expand(*y.shape)
 
         # diff penalty
-        loss = self.get_penalty(y, t)
+        loss = self.get_penalty(_y, t)
 
         if self.vae_mode:
             kl_div = -0.5 * torch.mean(1 + logvar - mu.pow(2) - logvar.exp())

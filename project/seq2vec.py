@@ -117,7 +117,7 @@ def main():
             "bidirectional": cfg.bidirectional,
             "batch_size": cfg.batch_size,
             "device": device,
-            "model_file": pathlib.Path(model_dir).joinpath("title.pth"),
+            "model_file": pathlib.Path(cfg.model_dir).joinpath("title.pth"),
     }
     words_model = SequenceEncoder(**model_params)
 
@@ -128,7 +128,7 @@ def main():
         "bidirectional": cfg.bidirectional,
         "batch_size": cfg.batch_size,
         "device": device,
-        "model_file": pathlib.Path(model_dir).joinpath("doc.pth"),
+        "model_file": pathlib.Path(cfg.model_dir).joinpath("doc.pth"),
     }
     doc_model = SequenceEncoder(**model_params)
 
